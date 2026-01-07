@@ -439,10 +439,21 @@
         // Adiciona pontos ao jogador atual (100 pontos por par encontrado)
         if (currentPlayer) {
           currentPlayer.pontuacao = (currentPlayer.pontuacao || 0) + 100;
+          
           // Atualiza a pontuação na tela
           const scoreElement = document.getElementById('score-count');
           if (scoreElement) {
             scoreElement.textContent = currentPlayer.pontuacao;
+          }
+          
+          // Salva a pontuação atualizada no banco de dados imediatamente
+          if (currentPlayer.__backendId) {
+            window.dataSdk.update(currentPlayer).then(result => {
+              if (result.isOk) {
+                // Atualiza o localStorage com a nova pontuação
+                localStorage.setItem('currentPlayer', JSON.stringify(currentPlayer));
+              }
+            });
           }
         }
 
@@ -469,6 +480,8 @@
       const result = await window.dataSdk.update(currentPlayer);
 
       if (result.isOk) {
+        // Atualiza o localStorage com o tempo final
+        localStorage.setItem('currentPlayer', JSON.stringify(currentPlayer));
         showVictoryScreen(timeElapsed);
       }
     }
@@ -584,6 +597,8 @@
       const result = await window.dataSdk.update(currentPlayer);
 
       if (result.isOk) {
+        // Atualiza o localStorage
+        localStorage.setItem('currentPlayer', JSON.stringify(currentPlayer));
         showClaimSuccess();
       } else {
         confirmBtn.textContent = '❌ Erro! Tente novamente';
@@ -970,8 +985,22 @@
       const result = await window.dataSdk.create(participant);
       
       if (result.isOk) {
-        currentPlayer = participant;
+        // Aguarda um momento para garantir que o participante foi criado e o onDataChanged foi chamado
         setTimeout(() => {
+          // Encontra o participante criado na lista (agora com __backendId)
+          const createdParticipant = participants.find(p => 
+            p.email === participant.email && 
+            p.nome === participant.nome
+          );
+          
+          if (createdParticipant) {
+            currentPlayer = createdParticipant;
+            // Salva no localStorage
+            localStorage.setItem('currentPlayer', JSON.stringify(createdParticipant));
+          } else {
+            currentPlayer = participant;
+          }
+          
           renderGameScreen();
         }, 1000);
       } else {
@@ -1025,6 +1054,23 @@
 
     async function initApp() {
       await window.dataSdk.init(dataHandler);
+      
+      // Restaura o jogador atual do localStorage se existir
+      const savedPlayer = localStorage.getItem('currentPlayer');
+      if (savedPlayer) {
+        try {
+          const playerData = JSON.parse(savedPlayer);
+          // Verifica se o jogador ainda existe no banco de dados
+          const existingPlayer = participants.find(p => p.__backendId === playerData.__backendId);
+          if (existingPlayer) {
+            currentPlayer = existingPlayer;
+          } else {
+            localStorage.removeItem('currentPlayer');
+          }
+        } catch (e) {
+          localStorage.removeItem('currentPlayer');
+        }
+      }
       
       if (window.elementSdk) {
         window.elementSdk.init({
@@ -1102,5 +1148,5 @@
       initApp();
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ba67549f01a5e0f',t:'MTc2NzgyMDM5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ba67bd516265e0f',t:'MTc2NzgyMDY2NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
