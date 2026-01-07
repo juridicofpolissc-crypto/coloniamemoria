@@ -344,6 +344,10 @@
                 <p class="stat-text font-bold">Pares Encontrados</p>
                 <p id="pairs-count" class="text-2xl font-bold">${gameState.matchedPairs}/8</p>
               </div>
+              <div>
+                <p class="stat-text font-bold">Pontuação</p>
+                <p id="score-count" class="text-2xl font-bold" style="color: #ffa500;">${currentPlayer.pontuacao || 0}</p>
+              </div>
             </div>
             
             <div id="game-board" class="grid grid-cols-4 gap-4 max-w-2xl mx-auto">
@@ -432,6 +436,16 @@
         document.querySelector(`[data-id="${card2.id}"]`).classList.add('matched');
         document.getElementById('pairs-count').textContent = `${gameState.matchedPairs}/8`;
 
+        // Adiciona pontos ao jogador atual (100 pontos por par encontrado)
+        if (currentPlayer) {
+          currentPlayer.pontuacao = (currentPlayer.pontuacao || 0) + 100;
+          // Atualiza a pontuação na tela
+          const scoreElement = document.getElementById('score-count');
+          if (scoreElement) {
+            scoreElement.textContent = currentPlayer.pontuacao;
+          }
+        }
+
         if (gameState.matchedPairs === 8) {
           setTimeout(() => endGame(), 500);
         }
@@ -448,9 +462,8 @@
 
     async function endGame() {
       const timeElapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
-      const score = Math.max(1000 - (gameState.moves * 10) - timeElapsed, 0);
 
-      currentPlayer.pontuacao = score;
+      // A pontuação já foi acumulada durante o jogo (100 pontos por par)
       currentPlayer.tempo_jogo = timeElapsed;
 
       const result = await window.dataSdk.update(currentPlayer);
@@ -750,7 +763,7 @@
                 <p class="text-sm opacity-75 mt-2">Prêmios Reivindicados</p>
               </div>
               <div class="p-6 rounded-lg text-center" style="background: rgba(33, 150, 243, 0.15); border: 2px solid rgba(33, 150, 243, 0.4);">
-                <p class="text-3xl font-bold">${participants.filter(p => p.pontuacao > 0).length}</p>
+                <p class="text-3xl font-bold">${participants.filter(p => p.tempo_jogo > 0).length}</p>
                 <p class="text-sm opacity-75 mt-2">Jogos Completados</p>
               </div>
             </div>
@@ -826,7 +839,7 @@
                 </div>
                 <div class="text-right">
                   <p class="text-lg font-bold" style="color: #4CAF50;">✅ Confirmado</p>
-                  <p class="text-sm">Pontos: ${participant.pontuacao}</p>
+                  <p class="text-lg font-bold" style="color: #ffa500;">⭐ ${participant.pontuacao || 0} pontos</p>
                 </div>
               </div>
               
@@ -883,6 +896,7 @@
                 <th class="p-3 text-left font-bold">Nome</th>
                 <th class="p-3 text-left font-bold">E-mail</th>
                 <th class="p-3 text-left font-bold">Telefone</th>
+                <th class="p-3 text-left font-bold">Endereço</th>
                 <th class="p-3 text-center font-bold">Pontuação</th>
                 <th class="p-3 text-center font-bold">Tempo (s)</th>
                 <th class="p-3 text-center font-bold">Prêmio</th>
@@ -895,6 +909,7 @@
                   <td class="p-3 font-semibold">${participant.nome}</td>
                   <td class="p-3">${participant.email}</td>
                   <td class="p-3">${participant.telefone}</td>
+                  <td class="p-3 text-sm">${participant.endereco_envio || '-'}</td>
                   <td class="p-3 text-center font-bold">${participant.pontuacao || 0}</td>
                   <td class="p-3 text-center">${participant.tempo_jogo || '-'}</td>
                   <td class="p-3 text-center">
@@ -912,7 +927,7 @@
           <p class="text-sm">
             📊 <strong>Estatísticas:</strong> 
             ${allParticipants.length} participantes • 
-            ${allParticipants.filter(p => p.pontuacao > 0).length} jogos completados • 
+            ${allParticipants.filter(p => p.tempo_jogo > 0).length} jogos completados • 
             ${allParticipants.filter(p => p.premio_reivindicado).length} prêmios reivindicados
           </p>
         </div>
@@ -994,6 +1009,15 @@
           const updated = data.find(p => p.__backendId === currentPlayer.__backendId);
           if (updated) {
             currentPlayer = updated;
+          }
+        }
+        
+        // Atualiza o contador de jogos completados no painel admin se estiver aberto
+        if (isAdminMode) {
+          const gamesCompletedElement = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-3 > div:nth-child(3) .text-3xl');
+          if (gamesCompletedElement) {
+            const completedGames = participants.filter(p => p.tempo_jogo > 0).length;
+            gamesCompletedElement.textContent = completedGames;
           }
         }
       }
@@ -1078,5 +1102,5 @@
       initApp();
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ba6575724e25e0f',t:'MTc2NzgxOTE3MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ba67549f01a5e0f',t:'MTc2NzgyMDM5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
